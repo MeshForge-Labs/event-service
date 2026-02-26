@@ -1,0 +1,14 @@
+# Local development - do NOT use in production
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    com.booking: DEBUG
+    org.hibernate.SQL: DEBUG
+
+jwt:
+  secret: ${JWT_SECRET:dev-only-secret-min-32-chars-for-event-svc}
