@@ -1,0 +1,63 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy container app to Azure Web App - booking-event-service
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to container registry
+        uses: docker/login-action@v2
+        with:
+          registry: mybookingacr.azurecr.io/
+          username: ${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_B45FB1611DB8496F880FD80A743A5D86 }}
+          password: ${{ secrets.AZUREAPPSERVICE_CONTAINERPASSWORD_CE0735D8D40D4CD49BC066F41ED733D2 }}
+
+      - name: Build and push container image to registry
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: mybookingacr.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_B45FB1611DB8496F880FD80A743A5D86 }}/event-service:${{ github.sha }}
+          file: ./Dockerfile
+
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    needs: build
+    
+    steps:
+      
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_12A8BF8C623B40DA8550824FFBE7FD8B }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EEB107625AFF46CEA2B593BEFE1BD99B }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_3BD08B8B1AD34418B9680BB8323F330B }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'booking-event-service'
+          slot-name: 'Production'
+          images: 'mybookingacr.azurecr.io/${{ secrets.AZUREAPPSERVICE_CONTAINERUSERNAME_B45FB1611DB8496F880FD80A743A5D86 }}/event-service:${{ github.sha }}'
+          
